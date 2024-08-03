@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Directory Picker Demo</title>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        document.getElementById('pickDir').addEventListener('click', pickDir)
+      })
+      const setDirTree = async (rootHandel, parentKey) => {
+        const currentRankFiles = []
+        let index = 0
+        // 遍历得到子句柄
+        for await (let currentHandel of rootHandel) {
+          const handelEle = currentHandel[1]
+          // 以文件路径作为 key
+          const uniqueKey = parentKey + '/' + handelEle.name
+          currentRankFiles.push(
+            createTreeNode(handelEle.kind, handelEle.name, uniqueKey, handelEle.kind === 'file' ? await handelEle.getFile() : null)
+          )
+          if (handelEle.kind === 'directory') {
+            // 递归构建节点树
+            currentRankFiles[index].children = await setDirTree(handelEle, uniqueKey)
+          }
+          index++
+        }
+        // 按照文件夹在前，文件在后排序
+        currentRankFiles.sort((a, b) => {
+          if (a.kind === 'directory' && b.kind === 'file') {
+            return -1
+          }
+          if (a.kind === 'file' && b.kind === 'directory') {
+            return 1
+          }
+          return 0
+        })
+        console.log('currentRankFiles', currentRankFiles)
+        return currentRankFiles
+      }
+      // 这里生成一个节点
+      const createTreeNode = (kind, name, key, file = null) => {
+        const res = {
+          title: name,
+          kind,
+          file,
+          icon: '',
+          key,
+        }
+        if (kind === 'directory') {
+          res.children = []
+          res.isLeaf = false
+        }
+        return res
+      }
+      async function pickDir() {
+        try {
+          const rootHandel = await window.showDirectoryPicker()
+          console.log('Selected directory:', rootHandel)
+          // 设置根节点
+          const rootTreeNode = createTreeNode(rootHandel.kind, rootHandel.name, '/' + rootHandel.name)
+          // 构建所有的节点
+          rootTreeNode.children = await setDirTree(rootHandel, '/' + rootHandel.name)
+          console.log('rootTreeNode', rootTreeNode)
+          // 在此处添加处理目录句柄的逻辑
+        } catch (err) {
+          console.error('Error while picking directory:', err)
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <button id="pickDir">Pick a Directory</button>
+  </body>
+</html>

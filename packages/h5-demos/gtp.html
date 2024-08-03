@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Chatbot Example</title>
+    <style>
+      #chat-box {
+        width: 400px;
+        height: 500px;
+        border: 1px solid black;
+        overflow-y: scroll;
+      }
+
+      .message {
+        margin: 10px;
+        overflow-wrap: break-word;
+      }
+
+      .user-message {
+        text-align: right;
+      }
+
+      .bot-message {
+        text-align: left;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="chat-box"></div>
+    <div>
+      <input type="text" id="question" placeholder="Ask your question here">
+      <button onclick="ask()">Ask</button>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+      const chatBox = document.getElementById('chat-box');
+      const questionInput = document.getElementById('question');
+
+      async function ask() {
+        const question = questionInput.value;
+        if (question.trim() === '') {
+          return;
+        }
+        questionInput.value = '';
+        displayMessage(question, 'user');
+        const answer = await getAnswer(question);
+        displayMessage(answer, 'bot');
+      }
+
+      async function getAnswer(question) {
+        const response = await axios.post('http://localhost:5500/ask', { question: question });
+        return response.data.answer;
+      }
+
+      function displayMessage(message, sender) {
+        const messageDiv = document.createElement('div');
+        messageDiv.innerText = message;
+        messageDiv.classList.add('message');
+        messageDiv.classList.add(`${sender}-message`);
+        chatBox.appendChild(messageDiv);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+    </script>
+  </body>
+</html>

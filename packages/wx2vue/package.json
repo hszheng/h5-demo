@@ -1,0 +1,22 @@
+{
+  "name": "src",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@codemirror/commands": "6.2.4",
+    "@codemirror/language": "6.7.0",
+    "@codemirror/state": "6.2.0",
+    "@codemirror/view": "6.11.0",
+    "htmlparser2": "9.0.0",
+    "typescript": "5.0.4",
+    "vue": "3.2.47",
+    "vue-router": "4.1.6"
+  }
+}

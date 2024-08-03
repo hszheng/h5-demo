@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Upload File</title>
+  </head>
+  <body>
+    <input type="file" id="file-input" />
+    <button id="upload-btn">Upload</button>
+    <br />
+    <progress id="progress-bar" value="0" max="100"></progress>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+      const CHUNK_SIZE = 1 * 1024 * 1024; // 切片大小，这里设置为 1MB
+      const MAX_THREADS = 4; // 最大线程数，这里设置为 4
+
+      const fileInput = document.getElementById('file-input');
+      const uploadBtn = document.getElementById('upload-btn');
+      const progressBar = document.getElementById('progress-bar');
+
+      function uploadChunks(file) {
+        const fileSize = file.size;
+        const fileName = file.name;
+        const chunks = Math.ceil(fileSize / CHUNK_SIZE);
+        const uploadUrl = 'http://localhost:5500/upload';
+        const tasks = [];
+        const progress = [];
+
+        // 初始化进度数组
+        for (let i = 0; i < chunks; i++) {
+          progress[i] = 0;
+        }
+        // 计算总进度
+        function getProgress() {
+          let loaded = 0;
+          for (let i = 0; i < chunks; i++) {
+            loaded += (progress[i] || 0) * CHUNK_SIZE;
+          }
+          return (loaded / fileSize) * 100;
+        }
+
+        // 更新进度条函数
+        function updateProgress() {
+          const percent = getProgress().toFixed(2);
+          progressBar.setAttribute('value', percent);
+        }
+        // 分片上传函数
+        function uploadChunk(chunkIndex) {
+          const start = chunkIndex * CHUNK_SIZE;
+          const end = Math.min(fileSize, start + CHUNK_SIZE);
+          const chunk = file.slice(start, end);
+          const formData = new FormData();
+          formData.append('chunk', chunk);
+          formData.append('chunkIndex', chunkIndex);
+          formData.append('fileName', fileName);
+          return axios.post(uploadUrl, formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+            onUploadProgress: function (event) {
+              if (event.lengthComputable || event.event.lengthComputable) {
+                progress[chunkIndex] = event.loaded / event.total;
+                updateProgress(); // 串行上传，实时更新进度条
+              }
+            },
+          }).then(function () {
+            // 串行，为实现进度条功能，上传成功，继续上传下一个分片
+            if (chunkIndex < chunks - 1) {
+              return uploadChunk(chunkIndex + 1);
+            }
+          });
+        }
+
+        // 创建上传任务
+        for (let i = 0; i < chunks; i++) {
+          tasks.push(uploadChunk(i));
+        }
+        return uploadChunk(0)
+      }
+
+      function mergeChunks(fileName) {
+        const mergeUrl = 'http://localhost:5500/merge';
+        const formData = new FormData();
+        formData.append('fileName', fileName);
+        return axios.post(mergeUrl, formData, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+      }
+
+      uploadBtn.addEventListener('click', function () {
+        const file = fileInput.files[0];
+        uploadChunks(file).then(function () {
+          mergeChunks(file.name).then(function (res) {
+            console.log(res.data);
+          });
+        });
+      });
+    </script>
+  </body>
+</html>
